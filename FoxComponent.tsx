@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo} from 'react';
+import React, {useMemo} from 'react';
 import {
   useImage,
   ImageShader,
@@ -8,14 +8,16 @@ import {
   SharedValueType,
 } from '@shopify/react-native-skia';
 import {PixelRatio} from 'react-native';
-import {sourceshader, vertices, indices, FoxState} from './Fox';
+import {sourceshader, vertices, indices} from './Fox';
+import {useDerivedValue} from 'react-native-reanimated';
+import {GameState} from './GameState';
 
 const pd = PixelRatio.get();
 const shader_scale = [{scale: pd}];
 export type FoxProps = {
   x: number | SharedValueType<number>;
   y: number | SharedValueType<number>;
-  fox: FoxState;
+  game_state: SharedValueType<GameState>;
 };
 
 export function FoxComponent(props: FoxProps) {
@@ -26,6 +28,10 @@ export function FoxComponent(props: FoxProps) {
       {translateX: number},
     ];
   }, [props]);
+  const uniforms = useDerivedValue(() => {
+    const {x_offset, y_offset} = props.game_state.value.fox_state;
+    return {x_offset, y_offset};
+  });
 
   if (!fox) {
     return null;
@@ -36,7 +42,7 @@ export function FoxComponent(props: FoxProps) {
       <Shader
         transform={shader_scale}
         source={sourceshader!}
-        uniforms={props.fox.shared_value}>
+        uniforms={uniforms}>
         <ImageShader image={fox} />
       </Shader>
       <Vertices textures={vertices} vertices={vertices} indices={indices} />

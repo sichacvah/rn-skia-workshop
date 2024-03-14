@@ -1,5 +1,4 @@
-import {Skia, SharedValueType, vec} from '@shopify/react-native-skia';
-import {useSharedValue} from 'react-native-reanimated';
+import {Skia, vec} from '@shopify/react-native-skia';
 
 export const side = 32;
 
@@ -53,10 +52,9 @@ export type FoxState = {
   ystate: YState;
   xstate: number;
   time_from_prev_frame: number;
-  shared_value: SharedValueType<{
-    x_offset: number;
-    y_offset: number;
-  }>;
+  x_offset: number;
+  y_offset: number;
+  is_running: boolean;
 };
 
 export function get_next_x(state: FoxState): number {
@@ -70,7 +68,7 @@ export function set_y_state(state: FoxState, y: YState) {
   'worklet';
   state.ystate = y;
   state.xstate = 0;
-  state.shared_value.value = {...state.shared_value.value, y_offset: y * side};
+  state.y_offset = y * side;
 }
 
 export function update_x_offset(
@@ -85,23 +83,17 @@ export function update_x_offset(
   }
   const x = get_next_x(state);
   state.xstate = x;
-  state.shared_value.value = {...state.shared_value.value, x_offset: x * side};
+  state.x_offset = x * side;
   state.time_from_prev_frame = time_since_first_frame;
 }
 
-export function initFoxState(
-  shared: SharedValueType<{x_offset: number; y_offset: number}>,
-  ystate: YState = y_ready,
-): FoxState {
+export function init_fox_state(ystate: YState = y_ready): FoxState {
   return {
     ystate,
     xstate: 0,
-    shared_value: shared,
     time_from_prev_frame: 0,
+    x_offset: 0,
+    y_offset: ystate * side,
+    is_running: false,
   };
-}
-
-export function useFoxState(ystate: YState = y_ready): FoxState {
-  const initial = useSharedValue({x_offset: 0, y_offset: ystate * side});
-  return initFoxState(initial, ystate);
 }
