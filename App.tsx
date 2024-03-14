@@ -1,22 +1,31 @@
 import React from 'react';
-import {Canvas, Circle, Group} from '@shopify/react-native-skia';
-import {View} from 'react-native';
+import {Canvas} from '@shopify/react-native-skia';
+import {StyleSheet, Dimensions, View, PixelRatio} from 'react-native';
+import {FoxComponent} from './FoxComponent.tsx';
+import {side} from './Fox';
 
 const App = () => {
-  const width = 256;
-  const height = 256;
-  const r = width * 0.33;
   return (
-    <View style={{flex: 1}}>
-      <Canvas style={{width, height}}>
-        <Group blendMode="multiply">
-          <Circle cx={r} cy={r} r={r} color="cyan" />
-          <Circle cx={width - r} cy={r} r={r} color="magenta" />
-          <Circle cx={width / 2} cy={width - r} r={r} color="yellow" />
-        </Group>
+    <View style={styles.container}>
+      <Canvas style={[StyleSheet.absoluteFill, styles.canvas]}>
+        <FoxComponent
+          x={side * 2}
+          y={height / 2 - (side * PixelRatio.get()) / 2}
+        />
       </Canvas>
     </View>
   );
 };
+
+const {height} = Dimensions.get('window');
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  canvas: {
+    backgroundColor: 'transparent',
+  },
+});
 
 export default App;

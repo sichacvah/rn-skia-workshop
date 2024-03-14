@@ -1,0 +1,98 @@
+import {Skia, SharedValueType, vec} from '@shopify/react-native-skia';
+import {useSharedValue} from 'react-native-reanimated';
+
+export const side = 32;
+
+export const sourceshader = Skia.RuntimeEffect.Make(`
+uniform shader image;
+uniform float x_offset;
+uniform float y_offset;
+
+vec4 main(vec2 TexCoord) {
+  return image.eval(
+    vec2(TexCoord.x, TexCoord.y + 8.0) + 
+      vec2(x_offset, y_offset)
+  ).rgba;
+}
+`);
+
+// Position for each point of rect
+export const vertices = [
+  vec(0, 0),
+  vec(side, 0),
+  vec(side, side),
+  vec(0, side),
+];
+// reusing verticies
+// we going clockwise 0, 1, 2 triangle first
+// then 0, 2, 3 triangle
+// (0, 0)------------(side, 0)
+// |                         |
+// |                         |
+// (0, side)------(side, side)
+export const indices = [0, 1, 2, 0, 2, 3];
+
+if (!sourceshader) {
+  throw new Error("Couldn't compile the shader");
+}
+
+// y offsets in image determines which fox state we will show
+export const y_ready = 0 as const;
+export const y_idle = 1 as const;
+export const y_walk = 2 as const;
+export const y_jump = 3 as const;
+export const y_hit = 4 as const;
+export const y_sleep = 5 as const;
+export const y_die = 6 as const;
+export type YState = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+// max x frames for y offset
+export const x_frames = [5, 14, 8, 11, 5, 6, 7] as const;
+
+export type FoxState = {
+  ystate: YState;
+  xstate: number;
+  time_from_prev_frame: number;
+  shared_value: SharedValueType<{
+    x_offset: number;
+    y_offset: number;
+  }>;
+};
+
+export function get_next_x(state: FoxState): number {
+  'worklet';
+  const x = x_frames[state.ystate];
+  const next = state.xstate + 1;
+  return next >= x ? 0 : next;
+}
+
+export function set_y_state(state: FoxState, y: YState) {
+  'worklet';
+  state.ystate = y;
+  state.xstate = 0;
+  state.shared_value.value = {...state.shared_value.value, y_offset: y * side};
+}
+
+export function update_x_offset(state: FoxState) {
+  'worklet';
+  const x = get_next_x(state);
+  state.xstate = x;
+  state.shared_value.value = {...state.shared_value.value, x_offset: x * side};
+}
+
+export function initFoxState(
+  shared: SharedValueType<{x_offset: number; y_offset: number}>,
+  ystate: YState = y_ready,
+): FoxState {
+  return {
+    ystate,
+    xstate: 0,
+    shared_value: shared,
+    time_from_prev_frame: 0,
+  };
+}
+
+export function useFoxState(ystate: YState = y_ready): FoxState {
+  const initial = useSharedValue({x_offset: 0, y_offset: ystate * side});
+  return initFoxState(initial, ystate);
+}
