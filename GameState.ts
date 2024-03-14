@@ -8,6 +8,9 @@ export type GameDecl = {
   terrain_size: number;
   fox_velocity: number;
   fox_state: YState;
+  fox_y: number;
+  fox_x: number;
+  pd: number;
 };
 
 export type GameState = {
@@ -39,7 +42,10 @@ export function update_terrains(state: GameState, info: FrameInfo) {
   const delta = info.timeSinceFirstFrame - state.prev_timestamp;
   state.prev_timestamp = info.timeSinceFirstFrame;
   const [left, center, right] = state.terrains;
-  const offset = delta * state.game_decl.fox_velocity;
+  const offset =
+    delta *
+    state.game_decl.fox_velocity *
+    (state.fox_state.jump_state ? 1.5 : 1);
   left.x -= offset;
   center.x -= offset;
   right.x -= offset;
@@ -55,7 +61,11 @@ export function update_terrains(state: GameState, info: FrameInfo) {
 export function init_game_state(game_decl: GameDecl): GameState {
   return {
     game_decl,
-    fox_state: init_fox_state(game_decl.fox_state),
+    fox_state: init_fox_state(
+      game_decl.fox_x,
+      game_decl.fox_y,
+      game_decl.fox_state,
+    ),
     terrains: init_terrains(game_decl),
     prev_timestamp: 0,
   };

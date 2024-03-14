@@ -15,19 +15,18 @@ import {GameState} from './GameState';
 const pd = PixelRatio.get();
 const shader_scale = [{scale: pd}];
 export type FoxProps = {
-  x: number | SharedValueType<number>;
-  y: number | SharedValueType<number>;
   game_state: SharedValueType<GameState>;
 };
 
 export function FoxComponent(props: FoxProps) {
   const fox = useImage(require('./images/fox_sprite_sheet.png'));
-  const transform = useMemo(() => {
-    return [{translateY: props.y}, {translateX: props.x}] as [
+  const transform = useDerivedValue(() => {
+    const {x, y} = props.game_state.value.fox_state;
+    return [{translateY: y}, {translateX: x}] as [
       {translateY: number},
       {translateX: number},
     ];
-  }, [props]);
+  });
   const uniforms = useDerivedValue(() => {
     const {x_offset, y_offset} = props.game_state.value.fox_state;
     return {x_offset, y_offset};
