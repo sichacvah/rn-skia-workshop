@@ -73,11 +73,20 @@ export function set_y_state(state: FoxState, y: YState) {
   state.shared_value.value = {...state.shared_value.value, y_offset: y * side};
 }
 
-export function update_x_offset(state: FoxState) {
+export function update_x_offset(
+  state: FoxState,
+  time_since_first_frame: number,
+) {
   'worklet';
+  const frames_count = x_frames[state.ystate];
+  const delta = time_since_first_frame - state.time_from_prev_frame;
+  if (delta < 1000 / frames_count) {
+    return;
+  }
   const x = get_next_x(state);
   state.xstate = x;
   state.shared_value.value = {...state.shared_value.value, x_offset: x * side};
+  state.time_from_prev_frame = time_since_first_frame;
 }
 
 export function initFoxState(
