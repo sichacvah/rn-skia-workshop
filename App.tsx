@@ -32,6 +32,7 @@ import {LivesCount} from './LivesCount.tsx';
 import {StartFlagComponent} from './StartFlagComponent.tsx';
 import {StartTapLabel} from './StartTapLabel.tsx';
 import {GameOverLabel} from './GameOver.tsx';
+import { CountLabel } from './CountLabel.tsx';
 
 const pd = PixelRatio.get();
 const {height, width} = Dimensions.get('window');
@@ -157,6 +158,7 @@ const App = () => {
           <Terrain game_state={game_state} />
           <LivesCount game_state={game_state} />
         </Canvas>
+        <CountLabel gs={game_state} />
         <StartTapLabel gs={game_state} />
         <GameOverLabel gs={game_state} />
       </View>

@@ -137,6 +137,7 @@ export function update_enemy(gs: GameState, info: FrameInfo, v: number) {
     if (gs.enemy.is_hitted) {
       gs.enemy.x = gs.game_decl.width + gs.enemy.width;
     } else {
+      gs.count += 1;
       gs.enemy.x = gs.game_decl.width + gs.enemy.width / 2;
     }
     gs.enemy.is_hitted = false;
@@ -162,6 +163,7 @@ export type GameState = {
   enemy: EnemyState;
   lives: number;
   start_state: StartState;
+  count: number;
 };
 
 export type TerrainBlock = {
@@ -217,6 +219,7 @@ export function init_game_state(game_decl: GameDecl): GameState {
     ),
     lives: game_decl.initial_lives,
     start_state: init_start_state(1.5 * side, game_decl.fox_y - side),
+    count: 0,
   };
 }
 
@@ -229,6 +232,7 @@ export function reset_state(game_state: GameState) {
   game_state.enemy = next.enemy;
   game_state.lives = next.lives;
   game_state.start_state = next.start_state;
+  game_state.count = 0;
 }
 
 export function useGameState(game_decl: GameDecl): SharedValue<GameState> {
