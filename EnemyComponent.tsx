@@ -6,7 +6,6 @@ import {
   Vertices,
   Rect,
   SharedValueType,
-  Group,
 } from '@shopify/react-native-skia';
 import {PixelRatio} from 'react-native';
 import {vertices, indices} from './Fox';

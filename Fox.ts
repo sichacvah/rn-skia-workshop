@@ -47,20 +47,22 @@ export const y_die = 6 as const;
 export type YState = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 // max x frames for y offset
-export const x_frames = [5, 14, 8, 11, 5, 6, 7] as const;
+export const x_frames = [4, 13, 7, 10, 4, 5, 6] as const;
 
 export type JumpNone = 0;
 export type JumpRising = 1;
 export type JumpFalling = 2;
 export type JumpPrepare = 3;
 export type JumpAfter = 4;
+export type JumpFail = 5;
 
 export type JumpState =
   | JumpNone
   | JumpRising
   | JumpFalling
   | JumpPrepare
-  | JumpAfter;
+  | JumpAfter
+  | JumpFail;
 
 export type FoxState = {
   ystate: YState;
@@ -68,7 +70,6 @@ export type FoxState = {
   time_from_prev_frame: number;
   x_offset: number;
   y_offset: number;
-  is_running: boolean;
   x: number;
   y: number;
   initial_y: number;
@@ -79,7 +80,7 @@ export function get_next_x(state: FoxState): number {
   'worklet';
   const x = x_frames[state.ystate];
   let next = state.xstate + 1;
-  next = next >= x ? 0 : next;
+  next = next > x ? 0 : next;
   return next;
 }
 
@@ -120,7 +121,17 @@ export function update_fox_state(
   const jump_height = side * 1.75;
   const delta = info.timeSinceFirstFrame - prev_ts;
   if (state.jump_state > 0) {
-    if (state.jump_state === 3) {
+    if (state.jump_state === 5) {
+      if (state.ystate !== y_hit) {
+        set_y_state(state, y_hit);
+      }
+      state.y += delta * v * 1.2;
+      state.y = Math.min(state.y, state.initial_y);
+      if (state.y === state.initial_y) {
+        state.jump_state = 0;
+        //set_y_state(state, y_walk);
+      }
+    } else if (state.jump_state === 3) {
       update_x_offset(state, info.timeSinceFirstFrame);
       if (state.xstate > 2) {
         state.jump_state = 1;
@@ -139,13 +150,11 @@ export function update_fox_state(
           state.jump_state = 2;
         }
       } else if (state.y < state.initial_y - jump_height / 3) {
-        state.xstate = 3;
-        state.x_offset = state.xstate * side;
-        state.time_from_prev_frame = info.timeSinceFirstFrame;
+        state.xstate = 3 - 1;
+        update_x_offset(state, info.timeSinceFirstFrame);
       } else {
-        state.xstate = 4;
-        state.x_offset = state.xstate * side;
-        state.time_from_prev_frame = info.timeSinceFirstFrame;
+        state.xstate = 4 - 1;
+        update_x_offset(state, info.timeSinceFirstFrame);
       }
     } else if (state.jump_state === 2) {
       state.y = state.y + delta * v * 1.2;
@@ -153,10 +162,18 @@ export function update_fox_state(
       if (state.y >= state.initial_y && state.xstate === 5) {
         state.jump_state = 4;
       } else if (state.y >= state.initial_y - jump_height) {
-        state.xstate = 5;
-        state.x_offset = state.xstate * side;
-        state.time_from_prev_frame = info.timeSinceFirstFrame;
+        state.xstate = 5 - 1;
+        update_x_offset(state, info.timeSinceFirstFrame);
       }
+    }
+  } else if (state.ystate === y_hit) {
+    update_x_offset(state, info.timeSinceFirstFrame);
+    if (state.xstate === x_frames[y_hit]) {
+      set_y_state(state, y_walk);
+    }
+  } else if (state.ystate === y_die) {
+    if (state.xstate < x_frames[y_die]) {
+      update_x_offset(state, info.timeSinceFirstFrame);
     }
   } else {
     update_x_offset(state, info.timeSinceFirstFrame);
@@ -168,13 +185,13 @@ export function init_fox_state(
   y: number,
   ystate: YState = y_ready,
 ): FoxState {
+  'worklet';
   return {
     ystate,
     xstate: 0,
     time_from_prev_frame: 0,
     x_offset: 0,
     y_offset: ystate * side,
-    is_running: false,
     x,
     y,
     initial_y: y,

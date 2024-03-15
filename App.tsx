@@ -8,12 +8,30 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import {FoxComponent} from './FoxComponent.tsx';
-import {set_y_state, side, update_fox_state, y_jump, y_walk} from './Fox';
+import {
+  set_y_state,
+  side,
+  update_fox_state,
+  y_die,
+  y_hit,
+  y_jump,
+  y_sleep,
+  y_walk,
+} from './Fox';
 import {useFrameCallback} from 'react-native-reanimated';
-import {update_enemy, update_terrains, useGameState} from './GameState';
+import {
+  reset_state,
+  update_enemy,
+  update_flag,
+  update_terrains,
+  useGameState,
+} from './GameState';
 import {Terrain, GRASS_SIDE} from './Terrain';
 import {EnemyComponent} from './EnemyComponent';
 import {LivesCount} from './LivesCount.tsx';
+import {StartFlagComponent} from './StartFlagComponent.tsx';
+import {StartTapLabel} from './StartTapLabel.tsx';
+import {GameOverLabel} from './GameOver.tsx';
 
 const pd = PixelRatio.get();
 const {height, width} = Dimensions.get('window');
@@ -51,7 +69,7 @@ const App = () => {
     height: height / pd,
     terrain_size: terrain_size,
     fox_velocity: 0.2 / pd,
-    fox_state: y_walk,
+    fox_state: y_sleep,
     fox_x: side,
     fox_y: height / pd - terrain_size - side,
     initial_lives: 3,
@@ -61,10 +79,15 @@ const App = () => {
     game_state.modify(gs => {
       'worklet';
 
-      const velocity =
+      let velocity =
         gs.fox_state.ystate === y_jump
           ? gs.game_decl.fox_velocity * 1.5
           : gs.game_decl.fox_velocity;
+      if (gs.fox_state.ystate === y_sleep || gs.fox_state.ystate === y_die) {
+        velocity = 0;
+      }
+
+      update_flag(gs, info, velocity);
       update_fox_state(gs.fox_state, gs.prev_timestamp, velocity, info);
       update_enemy(gs, info, velocity);
       update_terrains(gs, velocity, info);
@@ -81,7 +104,16 @@ const App = () => {
         is_overlaping2D(ex0, ey0, ex1, ey1, fx0, fy0, fx1, fy1)
       ) {
         gs.enemy.is_hitted = true;
+        if (gs.fox_state.jump_state > 0) {
+          gs.fox_state.jump_state = 5;
+        } else {
+          set_y_state(gs.fox_state, y_hit);
+        }
         gs.lives -= 1;
+        if (gs.lives === 0) {
+          gs.fox_state.jump_state = 0;
+          set_y_state(gs.fox_state, y_die);
+        }
       }
       return gs;
     });
@@ -90,7 +122,11 @@ const App = () => {
   const pressHandler = useCallback(() => {
     game_state.modify(gs => {
       'worklet';
-      if (!gs.fox_state.jump_state || gs.fox_state.jump_state === 4) {
+      if (gs.fox_state.ystate === y_die) {
+        reset_state(gs);
+      } else if (gs.fox_state.ystate === y_sleep) {
+        set_y_state(gs.fox_state, y_walk);
+      } else if (!gs.fox_state.jump_state || gs.fox_state.jump_state === 4) {
         gs.fox_state.jump_state = 3;
         set_y_state(gs.fox_state, y_jump);
       }
@@ -116,10 +152,13 @@ const App = () => {
             </Rect>
           ) : null}
           <EnemyComponent game_state={game_state} />
+          <StartFlagComponent game_state={game_state} />
           <FoxComponent game_state={game_state} />
           <Terrain game_state={game_state} />
           <LivesCount game_state={game_state} />
         </Canvas>
+        <StartTapLabel gs={game_state} />
+        <GameOverLabel gs={game_state} />
       </View>
     </TouchableWithoutFeedback>
   );
