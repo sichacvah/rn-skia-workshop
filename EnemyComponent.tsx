@@ -6,34 +6,35 @@ import {
   Vertices,
   Rect,
   SharedValueType,
+  Group,
 } from '@shopify/react-native-skia';
 import {PixelRatio} from 'react-native';
-import {sourceshader, vertices, indices, side} from './Fox';
+import {vertices, indices} from './Fox';
 import {useDerivedValue} from 'react-native-reanimated';
-import {GameState} from './GameState';
+import {GameState, SPIKES_HEIGHT, SPIKES_WIDTH, enemyshader} from './GameState';
 import {get_debug_boxes} from './config';
 
 const pd = PixelRatio.get();
 const shader_scale = [{scale: pd}];
-export type FoxProps = {
+export type EnemyProps = {
   game_state: SharedValueType<GameState>;
 };
 
-export function FoxComponent(props: FoxProps) {
-  const fox = useImage(require('./images/fox_sprite_sheet.png'));
+export function EnemyComponent(props: EnemyProps) {
+  const spikes = useImage(require('./images/spikes.png'));
   const transform = useDerivedValue(() => {
-    const {x, y} = props.game_state.value.fox_state;
+    let {x, y} = props.game_state.value.enemy;
     return [{translateY: y * pd}, {translateX: x * pd}] as [
       {translateY: number},
       {translateX: number},
     ];
   });
   const uniforms = useDerivedValue(() => {
-    const {x_offset, y_offset} = props.game_state.value.fox_state;
-    return {x_offset, y_offset};
+    const {x_offset} = props.game_state.value.enemy;
+    return {x_offset};
   });
 
-  if (!fox) {
+  if (!spikes) {
     return null;
   }
 
@@ -42,25 +43,25 @@ export function FoxComponent(props: FoxProps) {
       {get_debug_boxes() ? (
         <Rect
           transform={transform}
-          x={4 * pd}
+          x={0}
           y={0}
-          width={(side - 8) * pd}
-          height={side * pd}
           style={'stroke'}
           color="black"
+          width={SPIKES_WIDTH * pd}
+          height={SPIKES_HEIGHT * pd}
         />
       ) : null}
       <Rect
         transform={transform}
         x={0}
         y={0}
-        width={side * pd}
-        height={side * pd}>
+        width={SPIKES_WIDTH * pd}
+        height={SPIKES_HEIGHT * pd}>
         <Shader
           transform={shader_scale}
-          source={sourceshader!}
+          source={enemyshader!}
           uniforms={uniforms}>
-          <ImageShader image={fox} />
+          <ImageShader image={spikes} />
         </Shader>
         <Vertices textures={vertices} vertices={vertices} indices={indices} />
       </Rect>

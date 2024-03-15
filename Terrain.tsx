@@ -8,6 +8,7 @@ import {
 } from '@shopify/react-native-skia';
 import {useDerivedValue} from 'react-native-reanimated';
 import {GameState} from './GameState';
+import {PixelRatio} from 'react-native';
 
 export const GRASS_SIDE = 44;
 
@@ -29,7 +30,7 @@ function TerrainPart(props: TerrainPartProps) {
   const scaled_grass = GRASS_SIDE * pd;
   return (
     <>
-      <Rect x={x} y={y_fill} width={width} height={60 * pd}>
+      <Rect x={x} y={y_fill} width={width * pd} height={60 * pd}>
         <ImageShader
           image={fill}
           x={x}
@@ -43,7 +44,7 @@ function TerrainPart(props: TerrainPartProps) {
         />
       </Rect>
 
-      <Rect x={x} y={y} width={width} height={scaled_grass}>
+      <Rect x={x} y={y} width={width * pd} height={scaled_grass}>
         <ImageShader
           image={grass}
           x={x}
@@ -59,17 +60,25 @@ function TerrainPart(props: TerrainPartProps) {
   );
 }
 
+const pd = PixelRatio.get();
+
 export function Terrain(props: TerrainProps) {
-  const {pd, width} = props.game_state.value.game_decl;
+  const {width} = props.game_state.value.game_decl;
   const grassTerrain = useImage(require('./images/grass.png'));
   const terrainFill = useImage(require('./images/terrainfill.png'));
 
-  const leftX = useDerivedValue(() => props.game_state.value.terrains[0].x);
-  const y = useDerivedValue(() => props.game_state.value.terrains[0].y);
+  const leftX = useDerivedValue(
+    () => props.game_state.value.terrains[0].x * pd,
+  );
+  const y = useDerivedValue(() => props.game_state.value.terrains[0].y * pd);
   const y_fill = useDerivedValue(() => y.value + GRASS_SIDE * pd);
 
-  const centerX = useDerivedValue(() => props.game_state.value.terrains[1].x);
-  const rightX = useDerivedValue(() => props.game_state.value.terrains[2].x);
+  const centerX = useDerivedValue(
+    () => props.game_state.value.terrains[1].x * pd,
+  );
+  const rightX = useDerivedValue(
+    () => props.game_state.value.terrains[2].x * pd,
+  );
 
   if (!grassTerrain || !terrainFill) {
     return null;
