@@ -32,7 +32,7 @@ import {LivesCount} from './LivesCount.tsx';
 import {StartFlagComponent} from './StartFlagComponent.tsx';
 import {StartTapLabel} from './StartTapLabel.tsx';
 import {GameOverLabel} from './GameOver.tsx';
-import { CountLabel } from './CountLabel.tsx';
+import {CountLabel} from './CountLabel.tsx';
 
 const pd = PixelRatio.get();
 const {height, width} = Dimensions.get('window');
@@ -64,7 +64,7 @@ export function is_overlaping2D(
 }
 
 const App = () => {
-  const terrain_size = GRASS_SIDE * 2;
+  const terrain_size = GRASS_SIDE;
   const game_state = useGameState({
     width: width / pd,
     height: height / pd,
@@ -82,7 +82,7 @@ const App = () => {
 
       let velocity =
         gs.fox_state.ystate === y_jump
-          ? gs.game_decl.fox_velocity * 1.5
+          ? gs.game_decl.fox_velocity * 1.25
           : gs.game_decl.fox_velocity;
       if (gs.fox_state.ystate === y_sleep || gs.fox_state.ystate === y_die) {
         velocity = 0;
@@ -92,12 +92,12 @@ const App = () => {
       update_fox_state(gs.fox_state, gs.prev_timestamp, velocity, info);
       update_enemy(gs, info, velocity);
       update_terrains(gs, velocity, info);
-      const ex0 = gs.enemy.x;
+      const ex0 = gs.enemy.x + gs.enemy.width / 4;
       const ey0 = gs.enemy.y;
       const fx0 = gs.fox_state.x + 4;
       const fy0 = gs.fox_state.y;
-      const ex1 = gs.enemy.x + gs.enemy.width;
-      const ey1 = gs.enemy.y + gs.enemy.height;
+      const ex1 = gs.enemy.x + gs.enemy.width / 2;
+      const ey1 = gs.enemy.y + gs.enemy.height / 2;
       const fx1 = gs.fox_state.x + side - 8;
       const fy1 = gs.fox_state.y + side;
       if (

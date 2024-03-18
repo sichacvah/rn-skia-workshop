@@ -99,9 +99,7 @@ export function update_x_offset(
   'worklet';
   const frames_count = x_frames[state.ystate];
   const delta = time_since_first_frame - state.time_from_prev_frame;
-  const jump_speed =
-    state.jump_state === 3 || state.jump_state === 4 ? 750 : 600;
-  const seconds_count = state.ystate === y_jump ? jump_speed : 1000;
+  const seconds_count = 1000;
   if (delta < seconds_count / frames_count) {
     return;
   }
@@ -125,11 +123,10 @@ export function update_fox_state(
       if (state.ystate !== y_hit) {
         set_y_state(state, y_hit);
       }
-      state.y += delta * v * 1.2;
+      state.y += delta * v * 1.5;
       state.y = Math.min(state.y, state.initial_y);
       if (state.y === state.initial_y) {
         state.jump_state = 0;
-        //set_y_state(state, y_walk);
       }
     } else if (state.jump_state === 3) {
       update_x_offset(state, info.timeSinceFirstFrame);
@@ -143,10 +140,10 @@ export function update_fox_state(
         set_y_state(state, y_walk);
       }
     } else if (state.jump_state === 1) {
-      state.y -= delta * v * 1.2;
+      state.y -= delta * v * 1.5;
       state.y = Math.max(state.y, state.initial_y - jump_height);
       if (state.y === state.initial_y - jump_height) {
-        if (info.timeSinceFirstFrame - state.time_from_prev_frame > 30) {
+        if (info.timeSinceFirstFrame - state.time_from_prev_frame > 300) {
           state.jump_state = 2;
         }
       } else if (state.y < state.initial_y - jump_height / 3) {
@@ -157,7 +154,7 @@ export function update_fox_state(
         update_x_offset(state, info.timeSinceFirstFrame);
       }
     } else if (state.jump_state === 2) {
-      state.y = state.y + delta * v * 1.2;
+      state.y = state.y + delta * v * 1.5;
       state.y = Math.min(state.y, state.initial_y);
       if (state.y >= state.initial_y && state.xstate === 5) {
         state.jump_state = 4;
