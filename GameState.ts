@@ -1,8 +1,19 @@
 import {SharedValue} from 'react-native-reanimated';
-import {FoxState, YState, init_fox_state, side} from './Fox';
+import {
+  FoxState,
+  YState,
+  init_fox_state,
+  set_y_state,
+  side,
+  update_fox_state,
+  y_die,
+  y_hit,
+  y_jump,
+  y_sleep,
+  y_walk,
+} from './Fox';
 import {FrameInfo, useSharedValue} from 'react-native-reanimated';
-import {Skia, vec} from '@shopify/react-native-skia';
-import {FoxComponent} from './FoxComponent';
+import {get_verticies} from './utils';
 
 // can reuse enemyshader
 export type StartState = {
@@ -12,18 +23,6 @@ export type StartState = {
   time_from_pref_update: number;
   x_offset: number;
 };
-
-export const startshader = Skia.RuntimeEffect.Make(`
-uniform shader image;
-uniform float x_offset;
-
-vec4 main(vec2 TexCoord) {
-  return image.eval(
-    vec2(TexCoord.x, TexCoord.y) + 
-      vec2(x_offset, 0)
-  ).rgba;
-}
-`);
 
 export function init_start_state(x: number, y: number): StartState {
   'worklet';
@@ -37,13 +36,7 @@ export function init_start_state(x: number, y: number): StartState {
 }
 export const MAX_START_FRAMES = 16;
 export const START_SIDE = 64;
-
-export const start_vertices = [
-  vec(0, 0),
-  vec(START_SIDE, 0),
-  vec(START_SIDE, START_SIDE),
-  vec(0, START_SIDE),
-];
+export const start_vertices = get_verticies(START_SIDE);
 
 export type EnemyState = {
   x: number;
@@ -61,30 +54,8 @@ export const SPIKES_WIDTH = 22;
 export const SPIKES_HEIGHT = 18;
 export const SPIKES_FRAMES = 10;
 
-export const enemyshader = Skia.RuntimeEffect.Make(`
-uniform shader image;
-uniform float x_offset;
-
-vec4 main(vec2 TexCoord) {
-  return image.eval(
-    vec2(TexCoord.x, TexCoord.y) + 
-      vec2(x_offset, 0)
-  ).rgba;
-}
-`);
-
 // Position for each point of rect
-export const enemy_vertices = [
-  vec(0, 0),
-  vec(SPIKES_WIDTH, 0),
-  vec(SPIKES_WIDTH, SPIKES_HEIGHT),
-  vec(0, SPIKES_HEIGHT),
-];
-
-export const indices = [0, 1, 2, 0, 2, 3];
-if (!enemyshader) {
-  throw new Error("Couldn't compile the shader");
-}
+export const enemy_vertices = get_verticies(SPIKES_WIDTH, SPIKES_HEIGHT);
 
 export function init_enemy_state(x: number, y: number): EnemyState {
   'worklet';
@@ -237,4 +208,99 @@ export function reset_state(game_state: GameState) {
 
 export function useGameState(game_decl: GameDecl): SharedValue<GameState> {
   return useSharedValue(init_game_state(game_decl));
+}
+
+export function is_overlaping1D(
+  xmin1: number,
+  xmax1: number,
+  xmin2: number,
+  xmax2: number,
+): boolean {
+  'worklet';
+  return xmax1 >= xmin2 && xmax2 >= xmin1;
+}
+
+export function is_overlaping2D(
+  ex1: number,
+  ey1: number,
+  ex2: number,
+  ey2: number,
+  fx1: number,
+  fy1: number,
+  fx2: number,
+  fy2: number,
+): boolean {
+  'worklet';
+  return (
+    is_overlaping1D(ex1, ex2, fx1, fx2) && is_overlaping1D(ey1, ey2, fy1, fy2)
+  );
+}
+
+export function handle_collisions(gs: GameState) {
+  'worklet';
+  const ex0 = gs.enemy.x + gs.enemy.width / 4;
+  const ey0 = gs.enemy.y;
+  const fx0 = gs.fox_state.x + 4;
+  const fy0 = gs.fox_state.y;
+  const ex1 = gs.enemy.x + gs.enemy.width / 2;
+  const ey1 = gs.enemy.y + gs.enemy.height / 2;
+  const fx1 = gs.fox_state.x + side - 8;
+  const fy1 = gs.fox_state.y + side;
+  if (
+    !gs.enemy.is_hitted &&
+    is_overlaping2D(ex0, ey0, ex1, ey1, fx0, fy0, fx1, fy1)
+  ) {
+    gs.enemy.is_hitted = true;
+    if (gs.fox_state.jump_state > 0) {
+      gs.fox_state.jump_state = 5;
+    } else {
+      set_y_state(gs.fox_state, y_hit);
+    }
+    gs.lives -= 1;
+    if (gs.lives === 0) {
+      gs.fox_state.jump_state = 0;
+      set_y_state(gs.fox_state, y_die);
+    }
+  }
+}
+
+export class PressHandler {
+  gs: SharedValue<GameState>;
+  constructor(gs: SharedValue<GameState>) {
+    this.gs = gs;
+  }
+
+  onPress = () => {
+    this.gs.modify(gs => {
+      'worklet';
+      if (gs.fox_state.ystate === y_die) {
+        reset_state(gs);
+      } else if (gs.fox_state.ystate === y_sleep) {
+        set_y_state(gs.fox_state, y_walk);
+      } else if (!gs.fox_state.jump_state || gs.fox_state.jump_state === 4) {
+        gs.fox_state.jump_state = 3;
+        set_y_state(gs.fox_state, y_jump);
+      }
+      return gs;
+    });
+  };
+}
+
+export function game_update(gs: GameState, info: FrameInfo): GameState {
+  'worklet';
+  let velocity =
+    gs.fox_state.ystate === y_jump
+      ? gs.game_decl.fox_velocity * 1.25
+      : gs.game_decl.fox_velocity;
+
+  if (gs.fox_state.ystate === y_sleep || gs.fox_state.ystate === y_die) {
+    velocity = 0;
+  }
+
+  update_flag(gs, info, velocity);
+  update_fox_state(gs.fox_state, gs.prev_timestamp, velocity, info);
+  update_enemy(gs, info, velocity);
+  update_terrains(gs, velocity, info);
+  handle_collisions(gs);
+  return gs;
 }

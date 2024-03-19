@@ -8,10 +8,11 @@ import {
   SharedValueType,
 } from '@shopify/react-native-skia';
 import {PixelRatio} from 'react-native';
-import {sourceshader, vertices, indices, side} from './Fox';
+import {vertices, side} from './Fox';
+import {shader} from './Shader';
 import {useDerivedValue} from 'react-native-reanimated';
 import {GameState} from './GameState';
-import {get_debug_boxes} from './config';
+import {indicies} from './utils';
 
 const pd = PixelRatio.get();
 const shader_scale = [{scale: pd}];
@@ -38,32 +39,16 @@ export function FoxComponent(props: FoxProps) {
   }
 
   return (
-    <>
-      {get_debug_boxes() ? (
-        <Rect
-          transform={transform}
-          x={4 * pd}
-          y={0}
-          width={(side - 8) * pd}
-          height={side * pd}
-          style={'stroke'}
-          color="black"
-        />
-      ) : null}
-      <Rect
-        transform={transform}
-        x={0}
-        y={0}
-        width={side * pd}
-        height={side * pd}>
-        <Shader
-          transform={shader_scale}
-          source={sourceshader!}
-          uniforms={uniforms}>
-          <ImageShader image={fox} />
-        </Shader>
-        <Vertices textures={vertices} vertices={vertices} indices={indices} />
-      </Rect>
-    </>
+    <Rect
+      transform={transform}
+      x={0}
+      y={0}
+      width={side * pd}
+      height={side * pd}>
+      <Shader transform={shader_scale} source={shader!} uniforms={uniforms}>
+        <ImageShader image={fox} />
+      </Shader>
+      <Vertices textures={vertices} vertices={vertices} indices={indicies} />
+    </Rect>
   );
 }

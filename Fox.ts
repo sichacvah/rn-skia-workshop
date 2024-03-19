@@ -1,41 +1,10 @@
-import {Skia, vec} from '@shopify/react-native-skia';
 import {FrameInfo} from 'react-native-reanimated';
+import {get_verticies} from './utils';
 
 export const side = 32;
 
-export const sourceshader = Skia.RuntimeEffect.Make(`
-uniform shader image;
-uniform float x_offset;
-uniform float y_offset;
-
-vec4 main(vec2 TexCoord) {
-  return image.eval(
-    vec2(TexCoord.x, TexCoord.y) + 
-      vec2(x_offset, y_offset)
-  ).rgba;
-}
-`);
-
 // Position for each point of rect
-export const vertices = [
-  vec(0, 0),
-  vec(side, 0),
-  vec(side, side),
-  vec(0, side),
-];
-// reusing verticies
-// we going clockwise 0, 1, 2 triangle first
-// then 0, 2, 3 triangle
-// (0, 0)------------(side, 0)
-// |                         |
-// |                         |
-// (0, side)------(side, side)
-export const indices = [0, 1, 2, 0, 2, 3];
-
-if (!sourceshader) {
-  throw new Error("Couldn't compile the shader");
-}
-
+export const vertices = get_verticies(side);
 // y offsets in image determines which fox state we will show
 export const y_ready = 0 as const;
 export const y_idle = 1 as const;
@@ -50,11 +19,17 @@ export type YState = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export const x_frames = [4, 13, 7, 10, 4, 5, 6] as const;
 
 export type JumpNone = 0;
+export const jump_none: JumpNone = 0;
 export type JumpRising = 1;
+export const jump_rising: JumpRising = 1;
 export type JumpFalling = 2;
+export const jump_falling: JumpFalling = 2;
 export type JumpPrepare = 3;
+export const jump_prepare: JumpPrepare = 3;
 export type JumpAfter = 4;
+export const jump_after: JumpAfter = 4;
 export type JumpFail = 5;
+export const jump_fail: JumpFail = 5;
 
 export type JumpState =
   | JumpNone
@@ -119,47 +94,47 @@ export function update_fox_state(
   const jump_height = side * 1.75;
   const delta = info.timeSinceFirstFrame - prev_ts;
   if (state.jump_state > 0) {
-    if (state.jump_state === 5) {
+    if (state.jump_state === jump_fail) {
       if (state.ystate !== y_hit) {
         set_y_state(state, y_hit);
       }
       state.y += delta * v * 1.5;
       state.y = Math.min(state.y, state.initial_y);
       if (state.y === state.initial_y) {
-        state.jump_state = 0;
+        state.jump_state = jump_none;
       }
-    } else if (state.jump_state === 3) {
+    } else if (state.jump_state === jump_prepare) {
       update_x_offset(state, info.timeSinceFirstFrame);
       if (state.xstate > 2) {
-        state.jump_state = 1;
+        state.jump_state = jump_rising;
       }
-    } else if (state.jump_state === 4) {
+    } else if (state.jump_state === jump_after) {
       update_x_offset(state, info.timeSinceFirstFrame);
       if (state.xstate === x_frames[state.ystate] || state.xstate === 0) {
-        state.jump_state = 0;
+        state.jump_state = jump_none;
         set_y_state(state, y_walk);
       }
-    } else if (state.jump_state === 1) {
+    } else if (state.jump_state === jump_rising) {
       state.y -= delta * v * 1.5;
       state.y = Math.max(state.y, state.initial_y - jump_height);
       if (state.y === state.initial_y - jump_height) {
         if (info.timeSinceFirstFrame - state.time_from_prev_frame > 300) {
-          state.jump_state = 2;
+          state.jump_state = jump_falling;
         }
       } else if (state.y < state.initial_y - jump_height / 3) {
-        state.xstate = 3 - 1;
+        state.xstate = 2;
         update_x_offset(state, info.timeSinceFirstFrame);
       } else {
-        state.xstate = 4 - 1;
+        state.xstate = 3;
         update_x_offset(state, info.timeSinceFirstFrame);
       }
-    } else if (state.jump_state === 2) {
+    } else if (state.jump_state === jump_falling) {
       state.y = state.y + delta * v * 1.5;
       state.y = Math.min(state.y, state.initial_y);
       if (state.y >= state.initial_y && state.xstate === 5) {
-        state.jump_state = 4;
+        state.jump_state = jump_after;
       } else if (state.y >= state.initial_y - jump_height) {
-        state.xstate = 5 - 1;
+        state.xstate = 4;
         update_x_offset(state, info.timeSinceFirstFrame);
       }
     }

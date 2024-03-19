@@ -8,10 +8,11 @@ import {
   SharedValueType,
 } from '@shopify/react-native-skia';
 import {PixelRatio} from 'react-native';
-import {vertices, indices} from './Fox';
+import {get_verticies, indicies} from './utils.ts';
 import {useDerivedValue} from 'react-native-reanimated';
-import {GameState, SPIKES_HEIGHT, SPIKES_WIDTH, enemyshader} from './GameState';
-import {get_debug_boxes} from './config';
+import {shader} from './Shader';
+import {GameState, SPIKES_HEIGHT, SPIKES_WIDTH} from './GameState';
+const vertices = get_verticies(32);
 
 const pd = PixelRatio.get();
 const shader_scale = [{scale: pd}];
@@ -30,7 +31,7 @@ export function EnemyComponent(props: EnemyProps) {
   });
   const uniforms = useDerivedValue(() => {
     const {x_offset} = props.game_state.value.enemy;
-    return {x_offset};
+    return {x_offset, y_offset: 0};
   });
 
   if (!spikes) {
@@ -38,32 +39,16 @@ export function EnemyComponent(props: EnemyProps) {
   }
 
   return (
-    <>
-      {get_debug_boxes() ? (
-        <Rect
-          transform={transform}
-          x={0}
-          y={0}
-          style={'stroke'}
-          color="black"
-          width={SPIKES_WIDTH * pd}
-          height={SPIKES_HEIGHT * pd}
-        />
-      ) : null}
-      <Rect
-        transform={transform}
-        x={0}
-        y={0}
-        width={SPIKES_WIDTH * pd}
-        height={SPIKES_HEIGHT * pd}>
-        <Shader
-          transform={shader_scale}
-          source={enemyshader!}
-          uniforms={uniforms}>
-          <ImageShader image={spikes} />
-        </Shader>
-        <Vertices textures={vertices} vertices={vertices} indices={indices} />
-      </Rect>
-    </>
+    <Rect
+      transform={transform}
+      x={0}
+      y={0}
+      width={SPIKES_WIDTH * pd}
+      height={SPIKES_HEIGHT * pd}>
+      <Shader transform={shader_scale} source={shader!} uniforms={uniforms}>
+        <ImageShader image={spikes} />
+      </Shader>
+      <Vertices textures={vertices} vertices={vertices} indices={indicies} />
+    </Rect>
   );
 }

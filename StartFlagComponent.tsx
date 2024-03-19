@@ -9,13 +9,9 @@ import {
 } from '@shopify/react-native-skia';
 import {PixelRatio} from 'react-native';
 import {useDerivedValue} from 'react-native-reanimated';
-import {
-  GameState,
-  START_SIDE,
-  start_vertices,
-  indices,
-  startshader,
-} from './GameState';
+import {GameState, START_SIDE, start_vertices} from './GameState';
+import {shader} from './Shader';
+import {indicies} from './utils';
 
 const pd = PixelRatio.get();
 const shader_scale = [{scale: pd}];
@@ -34,7 +30,7 @@ export function StartFlagComponent(props: StartFlagProps) {
   });
   const uniforms = useDerivedValue(() => {
     const {x_offset} = props.game_state.value.start_state;
-    return {x_offset};
+    return {x_offset, y_offset: 0};
   });
 
   if (!start) {
@@ -49,16 +45,13 @@ export function StartFlagComponent(props: StartFlagProps) {
         y={0}
         width={START_SIDE * pd}
         height={START_SIDE * pd}>
-        <Shader
-          transform={shader_scale}
-          source={startshader!}
-          uniforms={uniforms}>
+        <Shader transform={shader_scale} source={shader!} uniforms={uniforms}>
           <ImageShader image={start} />
         </Shader>
         <Vertices
           textures={start_vertices}
           vertices={start_vertices}
-          indices={indices}
+          indices={indicies}
         />
       </Rect>
     </>
