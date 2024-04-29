@@ -15,6 +15,8 @@ export const y_sleep = 5 as const;
 export const y_die = 6 as const;
 export type YState = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+// max y frames
+
 // max x frames for y offset
 export const x_frames = [4, 13, 7, 10, 4, 5, 6] as const;
 
